@@ -22,27 +22,44 @@ export default function CadastroPage() {
     setLoading(true);
     setError("");
 
-    // We now send the extra data inside the "options" object
-    const { error } = await supabase.auth.signUp({
+    // 1. Creates the user in the Auth system
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          nome_completo: nome,
-          diretoria: diretoria,
-        }
+        data: { nome_completo: nome, diretoria: diretoria }
       }
     });
 
-    if (error) {
-      setError("Erro ao criar conta. Verifique os dados e tente novamente.");
+    if (authError) {
+      setError("Erro ao criar conta. Verifique os dados.");
       setLoading(false);
-    } else {
-      setSuccess(true);
-      setTimeout(() => {
-        router.push("/login");
-      }, 3000);
+      return;
     }
+
+    // 2. SAVES THEM TO OUR NEW PROFILES TABLE!
+    // We set everyone to 'Estudante' by default. The Admin can change this later.
+   if (authData?.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert([
+          { 
+            id: authData.user.id, 
+            user_id: authData.user.id, // <-- A MÁGICA ESTÁ NESTA LINHA!
+            email: email, 
+            nome_completo: nome, 
+            diretoria: diretoria,
+            perfil: "Estudante" 
+          }
+        ]);
+        
+      if (profileError) console.error("Erro ao salvar perfil:", profileError);
+    }
+    
+    setSuccess(true);
+    setTimeout(() => {
+      router.push("/login");
+    }, 3000);
   };
 
   return (
