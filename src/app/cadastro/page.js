@@ -105,9 +105,8 @@ export default function CadastroPage() {
               <option value="Vice-Presidência">Vice-Presidência</option>
               <option value="Gestão de Pessoas">Gestão de Pessoas</option>
               <option value="Projetos">Projetos</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Comercial">Comercial</option>
-              <option value="Jurídico e Financeiro">Jurídico e Financeiro</option>
+              <option value="Marketing">Comunicação</option>
+              <option value="Marketing">Qualidade</option>
             </select>
           </div>
 
