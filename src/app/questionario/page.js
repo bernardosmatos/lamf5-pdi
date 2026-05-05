@@ -31,6 +31,14 @@ const NIVEIS_TRIAGEM = [
   { id: "avancado", title: "Avançado", desc: "Tenho domínio técnico sólido. Talvez já tenha certificações. Faço valuation/modelagem financeira. Já tive experiência profissional na área ou busco posições seniores." }
 ];
 
+// NOVO: Dicionário para traduzir a experiência profissional no PDF
+const EXP_MAP = {
+  "nenhuma": "Não, nunca trabalhei",
+  "fora": "Já tive estágio/trabalho fora da área de finanças",
+  "estagio_fin": "Já tive estágio em finanças / mercado",
+  "clt_fin": "Já tive (ou tenho) vínculo CLT em finanças"
+};
+
 const COMPORTAMENTAL_ANCHORS = [
   { id: "c_oral", title: "4.1 Comunicação oral", anchors: ["1 - Evito falar em público; travo em apresentações", "2 - Consigo apresentar se estiver preparado, mas fico ansioso", "3 - Me viro bem, mas me sinto inseguro em debates", "4 - Apresento e defendo ideias com tranquilidade na maioria das situações", "5 - Tenho facilidade de apresentar e argumentar mesmo sem preparo"] },
   { id: "c_escrita", title: "4.2 Comunicação escrita", anchors: ["1 - Tenho dificuldade para estruturar textos; minhas mensagens geram dúvida", "2 - Escrevo de forma funcional, mas preciso de várias revisões", "3 - Consigo escrever textos claros e bem estruturados para o cotidiano", "4 - Produzo documentos e relatórios profissionais sem grande esforço", "5 - Escrevo com fluência, tom adequado e persuasão em qualquer contexto"] },
@@ -51,7 +59,7 @@ const Req = () => <span style={{color: "var(--danger)", marginLeft: "4px"}}>*</s
 
 function Scale1to5({ label, value, onChange, required = true }) {
   return (
-    <div className="form-group mb-16">
+    <div className="form-group mb-16 no-print">
       <label className="form-label text-gold" style={{ fontSize: '13px' }}>{label} {required && <Req />}</label>
       <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
         {[1, 2, 3, 4, 5].map((n) => (
@@ -69,7 +77,7 @@ function Scale1to5({ label, value, onChange, required = true }) {
 
 function Scale0to10({ label, value, onChange, required = true }) {
   return (
-    <div className="form-group mt-20 mx-auto" style={{ maxWidth: "700px", textAlign: "left" }}>
+    <div className="form-group mt-20 mx-auto no-print" style={{ maxWidth: "700px", textAlign: "left" }}>
       <label className="form-label">{label} {required && <Req />}</label>
       <p style={{fontSize:"13px", color:"var(--text-muted)", marginBottom:"12px"}}>Selecione seu nível de engajamento atual com o seu próprio desenvolvimento.</p>
       <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
@@ -93,7 +101,7 @@ function Scale0to10({ label, value, onChange, required = true }) {
 
 function BehavioralAnchorScale({ title, anchors, value, onChange }) {
   return (
-    <div className="form-section" style={{ padding: "20px", marginBottom: "16px", background: "rgba(201,168,76,0.03)" }}>
+    <div className="form-section no-print" style={{ padding: "20px", marginBottom: "16px", background: "rgba(201,168,76,0.03)" }}>
       <h3 style={{ fontSize: "16px", color: "var(--gold-light)", marginBottom: "12px" }}>{title} <Req /></h3>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {anchors.map((anchorText, index) => {
@@ -155,7 +163,7 @@ export default function QuestionarioPage() {
     d_areas: [], d_empresa: "", d_1ano: "", d_3anos: "", d_5anos: "", d_admira: "",
     m_acad_1: "", m_acad_2: "", m_acad_3: "", m_cert_1: "", m_cert_2: "", m_cert_3: "", m_prof_1: "", m_prof_2: "", m_prof_3: "", m_pes_1: "", m_pes_2: "",
     r_motivo: "", r_sucesso: "", r_frustra: "", r_iniciativa: "", r_impede: "", r_aprende: "", r_mudar: "",
-    log_disp: [], log_formato: "", log_mentor: "", log_info: "", log_engajamento: null // null para forçar a pessoa a clicar
+    log_disp: "", log_formato: "", log_mentor: "", log_info: "", log_engajamento: null
   });
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
@@ -167,13 +175,12 @@ export default function QuestionarioPage() {
       if (error || !user) { router.push("/"); return; }
       setUser(user);
 
-      // VERIFICA SE O ALUNO JÁ RESPONDEU PARA BLOQUEAR O ACESSO
       const { data: existing } = await supabase.from('questionario_completo').select('id, respostas').eq('member_id', user.id).single();
       
       if (existing) {
         setAlreadyAnswered(true);
         if (existing.respostas) {
-          setForm(existing.respostas); // Carrega os dados pra poder gerar o PDF dele
+          setForm(existing.respostas); 
         }
       } else {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -201,23 +208,55 @@ export default function QuestionarioPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    const printElement = document.getElementById("print-report");
+    if (!printElement) return;
+
+    const janelaPrint = window.open('', '', 'width=900,height=650');
+    
+    janelaPrint.document.write(`
+      <html>
+        <head>
+          <title>Relatório PDI - ${f.nome}</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: black; padding: 40px; background: white; margin: 0; }
+            * { box-sizing: border-box; }
+            .print-section { border-bottom: 1px solid #ddd; margin-bottom: 20px; padding-bottom: 10px; page-break-inside: avoid; }
+            .print-item { font-size: 14px; margin-bottom: 6px; }
+            .print-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #333; }
+            h1 { font-size: 26px; margin: 0; font-weight: bold; text-align: center; }
+            h2 { font-size: 18px; font-weight: normal; margin: 8px 0 0; text-align: center; }
+            .header-border { border-bottom: 2px solid black; padding-bottom: 15px; margin-bottom: 25px; }
+            .footer { text-align: center; font-size: 11px; color: #666; margin-top: 40px; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printElement.innerHTML}
+        </body>
+      </html>
+    `);
+
+    janelaPrint.document.close();
+    janelaPrint.focus();
+    
+    setTimeout(() => {
+      janelaPrint.print();
+      janelaPrint.close();
+    }, 300);
   };
 
-  // ============================================================================
-  // FUNÇÃO DE VALIDAÇÃO (NÃO DEIXA AVANÇAR SEM PREENCHER)
-  // ============================================================================
   const handleNextStep = () => {
     let isValid = true;
     
-    // Bloco 0 (Boas Vindas) não tem inputs
-    if (step === 1) { // Contexto Pessoal
+    if (step === 1) { 
       if (!f.nome || !f.curso || !f.periodo || !f.entrada_liga || !f.exp_profissional || !f.horas_disp) isValid = false;
     } 
-    else if (step === 2) { // Triagem
+    else if (step === 2) { 
       if (!f.nivel) isValid = false;
     } 
-    else if (step === 3) { // Técnico
+    else if (step === 3) { 
       if (f.nivel === "iniciante" || f.nivel === "basico") {
         if (f.tec_in_math === 0 || f.tec_in_eco === 0 || f.tec_in_bolsa === 0 || f.tec_in_tipos === 0 || f.tec_in_excel === 0 || !f.tec_in_fortes || !f.tec_in_melhorar) isValid = false;
       } else if (f.nivel === "intermediario") {
@@ -226,20 +265,20 @@ export default function QuestionarioPage() {
         if (f.tec_adv_mod === 0 || f.tec_adv_dcf === 0 || f.tec_adv_lbo === 0 || f.tec_adv_ma === 0 || f.tec_adv_excel === 0 || f.tec_adv_py === 0 || !f.tec_adv_descarte || !f.tec_adv_fortes || !f.tec_adv_melhorar) isValid = false;
       }
     } 
-    else if (step === 4) { // Comportamental
+    else if (step === 4) { 
       if (f.c_oral === 0 || f.c_escrita === 0 || f.c_equipe === 0 || f.c_lider === 0 || f.c_proat === 0 || f.c_org === 0 || f.c_resil === 0 || f.c_analise === 0 || f.c_net === 0 || !f.c_star) isValid = false;
     } 
-    else if (step === 5) { // Direção de Carreira
+    else if (step === 5) { 
       if (f.d_areas.length === 0 || !f.d_empresa || !f.d_1ano || !f.d_3anos || !f.d_5anos) isValid = false;
     } 
-    else if (step === 6) { // Metas (Apenas a opção 1 de cada categoria principal é obrigatória)
+    else if (step === 6) { 
       if (!f.m_acad_1 || !f.m_cert_1 || !f.m_prof_1) isValid = false;
     } 
-    else if (step === 7) { // Reflexões
+    else if (step === 7) { 
       if (!f.r_motivo || !f.r_sucesso || !f.r_frustra || !f.r_iniciativa || !f.r_impede || !f.r_aprende) isValid = false;
     } 
-    else if (step === 8) { // Logística
-      if (!f.log_formato || f.log_engajamento === null) isValid = false;
+    else if (step === 8) { 
+      if (!f.log_disp || !f.log_formato || f.log_engajamento === null) isValid = false;
     }
 
     if (!isValid) {
@@ -254,50 +293,151 @@ export default function QuestionarioPage() {
   if (loading) return <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--black)' }}><p style={{ color: 'var(--gold)', fontWeight: 'bold' }}>CARREGANDO...</p></div>;
 
   // ============================================================================
-  // TELA DE BLOQUEIO COM FUNCIONALIDADE PDF (SUBSTITUINDO O ANTIGO IF)
+  // TELA DE BLOQUEIO E RELATÓRIO PDF GIGANTE
   // ============================================================================
   if (alreadyAnswered || hasFinished) {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--black)' }}>
-        <style>{`@media print { .no-print { display: none !important; } body { background: white; color: black; } .print-area { background: white; padding: 0; border: none; } * { color: black !important; } }`}</style>
         
-        <div className="card animate-fade-in print-area" style={{ textAlign: "center", padding: "60px 40px", maxWidth: "700px", border: 'none' }}>
-          <div className="no-print" style={{ fontSize: 64, marginBottom: 20 }}>🏆</div>
-          <h2 className="form-section-title text-gold mb-16 no-print">{hasFinished ? "Questionário Finalizado!" : "Você já respondeu este questionário."}</h2>
-          <p className="form-section-desc mb-32 no-print">
+        <div className="card animate-fade-in" style={{ textAlign: "center", padding: "60px 40px", maxWidth: "700px", border: 'none' }}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>🏆</div>
+          <h2 className="form-section-title text-gold mb-16">{hasFinished ? "Questionário Finalizado!" : "Você já respondeu este questionário."}</h2>
+          <p className="form-section-desc mb-32">
             {hasFinished ? `Muito obrigado, ${f.nome}! Suas respostas foram salvas e serão fundamentais para a próxima etapa do seu desenvolvimento na LAMF5.` : "O seu Plano de Desenvolvimento Individual já foi registrado no banco de dados da liga para este ciclo. Caso precise refazer, contate a Gestão de Pessoas."}
           </p>
-          <div className="no-print" style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
             <button onClick={() => router.push("/dashboard")} className="topbar-btn primary">Voltar para o Dashboard Central</button>
             <button onClick={handlePrint} className="topbar-btn">Exportar Relatório PDF</button>
           </div>
+        </div>
           
-          {/* ESTRUTURA INVISÍVEL NA TELA, MAS QUE APARECE NO PDF PARA DOCUMENTAR */}
-          <div style={{ display: 'none', textAlign: 'left' }} className="print-only">
-            <h1 style={{fontSize:'24px', borderBottom:'2px solid black', paddingBottom:'10px', marginBottom:'20px'}}>Relatório Oficial PDI: {f.nome}</h1>
-            <p><strong>Curso:</strong> {f.curso} | <strong>Nível Declarado:</strong> {f.nivel}</p>
-            <h3 style={{marginTop:'20px', borderBottom:'1px solid #ccc'}}>Áreas de Interesse</h3>
-            <p>{(f.d_areas || []).join(', ')}</p>
-            <h3 style={{marginTop:'20px', borderBottom:'1px solid #ccc'}}>Metas Registradas</h3>
-            <p><strong>Acadêmica:</strong> {f.m_acad_1}</p>
-            <p><strong>Certificação:</strong> {f.m_cert_1}</p>
-            <p><strong>Profissional:</strong> {f.m_prof_1}</p>
-            <h3 style={{marginTop:'20px', borderBottom:'1px solid #ccc'}}>Reflexões</h3>
-            <p><strong>Motivação:</strong> {f.r_motivo}</p>
-            <p><strong>Impedimentos:</strong> {f.r_impede}</p>
-            <p style={{marginTop:'40px', fontSize:'12px', color:'#666'}}><em>*Documento gerado pelo Sistema LAMF5.</em></p>
+        {/* ESTRUTURA INVISÍVEL NA TELA QUE ALIMENTA A NOVA JANELA DE IMPRESSÃO */}
+        <div id="print-report" style={{ display: 'none' }}>
+          <div className="header-border">
+            <h1>Plano de Desenvolvimento Individual</h1>
+            <h2>Liga Acadêmica de Mercado Financeiro (LAMF5)</h2>
           </div>
+
+          <div className="print-section">
+            <h3 className="print-title">Bloco 1: Contexto Pessoal</h3>
+            <p className="print-item"><strong>Nome Completo:</strong> {f.nome}</p>
+            <p className="print-item"><strong>Curso/Período:</strong> {f.curso} - {f.periodo}º Período</p>
+            <p className="print-item"><strong>CRA:</strong> {f.cra || "Não informado"}</p>
+            <p className="print-item"><strong>Entrada na Liga:</strong> {f.entrada_liga}</p>
+            {/* CORRIGIDO: Experiência Profissional agora mostra a frase completa */}
+            <p className="print-item"><strong>Experiência Profissional:</strong> {EXP_MAP[f.exp_profissional] || f.exp_profissional}</p>
+            <p className="print-item"><strong>Horas Disponíveis:</strong> {f.horas_disp}</p>
+          </div>
+
+          {/* CORRIGIDO: Bloco 2 & 3 agora mostram as notas técnicas completas */}
+          <div className="print-section">
+            <h3 className="print-title">Bloco 2 & 3: Autoavaliação Técnica</h3>
+            <p className="print-item"><strong>Trilha Nivelada:</strong> {f.nivel?.toUpperCase()}</p>
+            
+            {f.nivel === "iniciante" || f.nivel === "basico" ? (
+              <>
+                <p className="print-item"><strong>Matemática financeira básica:</strong> {f.tec_in_math}/5</p>
+                <p className="print-item"><strong>Economia (inflação, Selic, PIB):</strong> {f.tec_in_eco}/5</p>
+                <p className="print-item"><strong>Bolsa de valores:</strong> {f.tec_in_bolsa}/5</p>
+                <p className="print-item"><strong>Tipos de investimento:</strong> {f.tec_in_tipos}/5</p>
+                <p className="print-item"><strong>Excel básico:</strong> {f.tec_in_excel}/5</p>
+                <p className="print-item"><strong>Vocabulário:</strong> {(f.tec_in_vocab || []).join(', ') || "Nenhum"}</p>
+                <p className="print-item" style={{ marginTop: '12px' }}><strong>Três pontos fortes:</strong><br/>{f.tec_in_fortes}</p>
+                <p className="print-item"><strong>Três pontos a melhorar:</strong><br/>{f.tec_in_melhorar}</p>
+              </>
+            ) : f.nivel === "intermediario" ? (
+              <>
+                <p className="print-item"><strong>Análise fundamentalista:</strong> {f.tec_mid_fund}/5</p>
+                <p className="print-item"><strong>Valuation básico:</strong> {f.tec_mid_val}/5</p>
+                <p className="print-item"><strong>Contabilidade aplicada:</strong> {f.tec_mid_cont}/5</p>
+                <p className="print-item"><strong>Macroeconomia aplicada:</strong> {f.tec_mid_macro}/5</p>
+                <p className="print-item"><strong>Excel intermediário:</strong> {f.tec_mid_excel}/5</p>
+                <p className="print-item"><strong>Redação técnica:</strong> {f.tec_mid_red}/5</p>
+                <p className="print-item"><strong>Relatório/tese escrito:</strong> {f.tec_mid_relatorio || "Não informado"}</p>
+                <p className="print-item" style={{ marginTop: '12px' }}><strong>Três pontos fortes:</strong><br/>{f.tec_mid_fortes}</p>
+                <p className="print-item"><strong>Três pontos a melhorar:</strong><br/>{f.tec_mid_melhorar}</p>
+              </>
+            ) : (
+              <>
+                <p className="print-item"><strong>3-Statement Model:</strong> {f.tec_adv_mod}/5</p>
+                <p className="print-item"><strong>DCF Avançado:</strong> {f.tec_adv_dcf}/5</p>
+                <p className="print-item"><strong>LBO e PE Return:</strong> {f.tec_adv_lbo}/5</p>
+                <p className="print-item"><strong>M&A (Due Diligence):</strong> {f.tec_adv_ma}/5</p>
+                <p className="print-item"><strong>Excel Avançado (VBA):</strong> {f.tec_adv_excel}/5</p>
+                <p className="print-item"><strong>Python/Dados:</strong> {f.tec_adv_py}/5</p>
+                <p className="print-item"><strong>Áreas descartadas:</strong> {f.tec_adv_descarte || "Não preenchido"}</p>
+                <p className="print-item" style={{ marginTop: '12px' }}><strong>Três pontos fortes:</strong><br/>{f.tec_adv_fortes}</p>
+                <p className="print-item"><strong>Três pontos a melhorar:</strong><br/>{f.tec_adv_melhorar}</p>
+              </>
+            )}
+          </div>
+
+          <div className="print-section">
+            <h3 className="print-title">Bloco 4: Avaliação Comportamental</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <p className="print-item"><strong>Comunicação Oral:</strong> {f.c_oral}/5</p>
+              <p className="print-item"><strong>Comunicação Escrita:</strong> {f.c_escrita}/5</p>
+              <p className="print-item"><strong>Trabalho em Equipe:</strong> {f.c_equipe}/5</p>
+              <p className="print-item"><strong>Liderança:</strong> {f.c_lider}/5</p>
+              <p className="print-item"><strong>Proatividade:</strong> {f.c_proat}/5</p>
+              <p className="print-item"><strong>Organização e Tempo:</strong> {f.c_org}/5</p>
+              <p className="print-item"><strong>Resiliência:</strong> {f.c_resil}/5</p>
+              <p className="print-item"><strong>Pensamento Analítico:</strong> {f.c_analise}/5</p>
+              <p className="print-item"><strong>Networking:</strong> {f.c_net}/5</p>
+            </div>
+            <p className="print-item" style={{ marginTop: '12px' }}><strong>Método STAR (Situação Difícil):</strong><br/>{f.c_star}</p>
+          </div>
+
+          <div className="print-section">
+            <h3 className="print-title">Bloco 5: Direção de Carreira</h3>
+            <p className="print-item"><strong>Áreas de Interesse:</strong> {(f.d_areas || []).join(', ')}</p>
+            <p className="print-item"><strong>Empresa dos Sonhos:</strong> {f.d_empresa}</p>
+            <p className="print-item"><strong>Visão 1 Ano:</strong> {f.d_1ano}</p>
+            <p className="print-item"><strong>Visão 3 Anos:</strong> {f.d_3anos}</p>
+            <p className="print-item"><strong>Visão 5 Anos:</strong> {f.d_5anos}</p>
+            <p className="print-item"><strong>Profissional Admira:</strong> {f.d_admira || "Nenhum"}</p>
+          </div>
+
+          <div className="print-section">
+            <h3 className="print-title">Bloco 6: Metas Concretas (Próximos 6 meses)</h3>
+            <p className="print-item"><strong>Acadêmicas:</strong><br/>1. {f.m_acad_1}<br/>2. {f.m_acad_2 || "-"}<br/>3. {f.m_acad_3 || "-"}</p>
+            <p className="print-item"><strong>Certificações/Cursos:</strong><br/>1. {f.m_cert_1}<br/>2. {f.m_cert_2 || "-"}<br/>3. {f.m_cert_3 || "-"}</p>
+            <p className="print-item"><strong>Profissionais:</strong><br/>1. {f.m_prof_1}<br/>2. {f.m_prof_2 || "-"}<br/>3. {f.m_prof_3 || "-"}</p>
+            {f.m_pes_1 && <p className="print-item"><strong>Pessoais:</strong> 1. {f.m_pes_1 || "-"}</p>}
+          </div>
+
+          <div className="print-section">
+            <h3 className="print-title">Bloco 7: Reflexões</h3>
+            <p className="print-item" style={{marginBottom:'12px'}}><strong>Por que entrou na LAMF5 e o que espera?</strong><br/>{f.r_motivo}</p>
+            <p className="print-item" style={{marginBottom:'12px'}}><strong>Se em 1 ano fosse sucesso, o que teria mudado?</strong><br/>{f.r_sucesso}</p>
+            <p className="print-item" style={{marginBottom:'12px'}}><strong>O que mais te frustra hoje?</strong><br/>{f.r_frustra}</p>
+            <p className="print-item" style={{marginBottom:'12px'}}><strong>Estudo por iniciativa própria:</strong><br/>{f.r_iniciativa}</p>
+            <p className="print-item" style={{marginBottom:'12px'}}><strong>O que impede de estudar mais?</strong><br/>{f.r_impede}</p>
+            <p className="print-item" style={{marginBottom:'12px'}}><strong>Como aprende melhor?</strong><br/>{f.r_aprende}</p>
+            {f.r_mudar && <p className="print-item"><strong>O que mudaria imediatamente:</strong><br/>{f.r_mudar}</p>}
+          </div>
+
+          <div className="print-section" style={{ borderBottom: 'none' }}>
+            <h3 className="print-title">Bloco 8: Logística 1:1</h3>
+            <p className="print-item"><strong>Disponibilidade (Dias/Horas):</strong> {f.log_disp}</p>
+            <p className="print-item"><strong>Formato:</strong> {f.log_formato}</p>
+            <p className="print-item"><strong>Mentor Preferido:</strong> {f.log_mentor || "Sem preferência"}</p>
+            <p className="print-item"><strong>Engajamento Declarado:</strong> {f.log_engajamento}/10</p>
+            <p className="print-item"><strong>Informação Confidencial:</strong> {f.log_info || "Nenhuma"}</p>
+          </div>
+          
+          <div className="footer">Documento Oficial Gerado pelo Sistema de Gestão de Pessoas da LAMF5.</div>
         </div>
       </div>
     );
   }
 
   // ============================================================================
-  // RENDERIZAÇÃO DOS 9 BLOCOS DO FORMULÁRIO (0 a 8)
+  // RENDERIZAÇÃO DOS 9 BLOCOS DO FORMULÁRIO (0 a 8) NA TELA
   // ============================================================================
 
   const renderBloco0 = () => (
-    <div className="animate-fade-in" style={{ textAlign: "center", padding: "40px 20px" }}>
+    <div className="animate-fade-in no-print" style={{ textAlign: "center", padding: "40px 20px" }}>
       <h2 className="form-section-title mb-16 text-gold" style={{ fontSize: "32px" }}>Olá! Seja muito bem-vindo(a) ao seu PDI.</h2>
       <p className="text-secondary" style={{ fontSize: "16px", lineHeight: "1.8", maxWidth: "700px", margin: "0 auto 20px" }}>
         Este é o primeiro passo para construirmos juntos o seu Plano de Desenvolvimento Individual na LAMF5. Ele vai guiar conversas de mentoria, definir metas e medir sua evolução ao longo do ano.
@@ -312,7 +452,7 @@ export default function QuestionarioPage() {
   );
 
   const renderBloco1 = () => (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in no-print">
       <h2 className="form-section-title mb-6">Bloco 1: Contexto Pessoal</h2>
       <p className="form-section-desc">Informações básicas para conhecermos você melhor.</p>
       
@@ -351,7 +491,7 @@ export default function QuestionarioPage() {
   );
 
   const renderBloco2 = () => (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in no-print">
       <h2 className="form-section-title mb-6">Bloco 2: Nível de Conhecimento <Req/></h2>
       <p className="form-section-desc">Esta resposta define as perguntas técnicas da próxima página. Leia as descrições atentamente.</p>
       
@@ -377,10 +517,10 @@ export default function QuestionarioPage() {
   );
 
   const renderBloco3 = () => {
-    if (!f.nivel) return <div className="highlight-box" style={{borderColor:"var(--danger)", color:"var(--danger)", borderLeftColor:"var(--danger)"}}>Por favor, volte ao Bloco 2 e selecione seu nível atual.</div>;
+    if (!f.nivel) return <div className="highlight-box no-print" style={{borderColor:"var(--danger)", color:"var(--danger)"}}>Por favor, volte ao Bloco 2 e selecione seu nível atual.</div>;
 
     if (f.nivel === "iniciante" || f.nivel === "basico") return (
-      <div className="animate-fade-in">
+      <div className="animate-fade-in no-print">
         <h2 className="form-section-title mb-6">Bloco 3: Autoavaliação Técnica (Iniciante / Básico)</h2>
         <p className="form-section-desc">Avalie de 1 a 5 o seu conhecimento atual nos temas abaixo.</p>
         
@@ -409,18 +549,18 @@ export default function QuestionarioPage() {
     );
 
     if (f.nivel === "intermediario") return (
-      <div className="animate-fade-in">
+      <div className="animate-fade-in no-print">
         <h2 className="form-section-title mb-6">Bloco 3: Autoavaliação Técnica (Intermediário)</h2>
         <p className="form-section-desc">Avalie de 1 a 5 o seu conhecimento atual nos temas abaixo.</p>
         
-        <Scale1to5 label="3.1 Análise fundamentalista (múltiplos, vantagens competitivas)" value={f.tec_mid_fund} onChange={v=>set("tec_mid_fund",v)} />
-        <Scale1to5 label="3.2 Valuation básico (DCF, múltiplos comparáveis)" value={f.tec_mid_val} onChange={v=>set("tec_mid_val",v)} />
+        <Scale1to5 label="3.1 Análise fundamentalista" value={f.tec_mid_fund} onChange={v=>set("tec_mid_fund",v)} />
+        <Scale1to5 label="3.2 Valuation básico (DCF, múltiplos)" value={f.tec_mid_val} onChange={v=>set("tec_mid_val",v)} />
         <Scale1to5 label="3.3 Contabilidade aplicada (DRE, Balanço, DFC)" value={f.tec_mid_cont} onChange={v=>set("tec_mid_cont",v)} />
         <Scale1to5 label="3.4 Macroeconomia aplicada" value={f.tec_mid_macro} onChange={v=>set("tec_mid_macro",v)} />
-        <Scale1to5 label="3.5 Excel intermediário (PROCV, SE aninhado, financeiras)" value={f.tec_mid_excel} onChange={v=>set("tec_mid_excel",v)} />
-        <Scale1to5 label="3.6 Redação técnica (tese ou pitch de investimento)" value={f.tec_mid_red} onChange={v=>set("tec_mid_red",v)} />
+        <Scale1to5 label="3.5 Excel intermediário" value={f.tec_mid_excel} onChange={v=>set("tec_mid_excel",v)} />
+        <Scale1to5 label="3.6 Redação técnica" value={f.tec_mid_red} onChange={v=>set("tec_mid_red",v)} />
 
-        <div className="form-group mt-24 mb-20"><label className="form-label">3.7 Já escreveu algum relatório/tese? Descreva. (Opcional)</label><textarea className="form-textarea" placeholder="Ex: Escrevi um relatório sobre WEGE3 no semestre passado..." value={f.tec_mid_relatorio} onChange={e=>set("tec_mid_relatorio", e.target.value)} /></div>
+        <div className="form-group mt-24 mb-20"><label className="form-label">3.7 Já escreveu algum relatório/tese? (Opcional)</label><textarea className="form-textarea" placeholder="Ex: Escrevi um relatório sobre WEGE3 no semestre passado..." value={f.tec_mid_relatorio} onChange={e=>set("tec_mid_relatorio", e.target.value)} /></div>
         
         <div className="grid-2 gap-20 mt-24">
           <div className="form-group"><label className="form-label">3.8 Três pontos fortes técnicos seus <Req/></label><textarea className="form-textarea" placeholder="Ex: Boa base contábil, Excel avançado..." value={f.tec_mid_fortes} onChange={e=>set("tec_mid_fortes", e.target.value)} /></div>
@@ -430,7 +570,7 @@ export default function QuestionarioPage() {
     );
 
     return (
-      <div className="animate-fade-in">
+      <div className="animate-fade-in no-print">
         <h2 className="form-section-title mb-6">Bloco 3: Autoavaliação Técnica (Avançado)</h2>
         <p className="form-section-desc">Avalie de 1 a 5 o seu conhecimento atual nos temas abaixo.</p>
         
@@ -460,7 +600,7 @@ export default function QuestionarioPage() {
   };
 
   const renderBloco4 = () => (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in no-print">
       <h2 className="form-section-title mb-6">Bloco 4: Autoavaliação Comportamental</h2>
       <p className="form-section-desc">Leia as descrições e selecione a frase que melhor define a sua realidade hoje. Seja brutalmente honesto.</p>
       
@@ -477,7 +617,7 @@ export default function QuestionarioPage() {
   );
 
   const renderBloco5 = () => (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in no-print">
       <h2 className="form-section-title mb-6">Bloco 5: Direção de Carreira</h2>
       
       <div className="form-group mb-24">
@@ -502,7 +642,7 @@ export default function QuestionarioPage() {
   );
 
   const renderBloco6 = () => (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in no-print">
       <h2 className="form-section-title mb-6">Bloco 6: Metas Concretas</h2>
       <p className="form-section-desc">O que você quer alcançar nos próximos 6 meses. Apenas a 1ª opção de cada bloco é obrigatória.</p>
       
@@ -542,7 +682,7 @@ export default function QuestionarioPage() {
   );
 
   const renderBloco7 = () => (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in no-print">
       <h2 className="form-section-title mb-6">Bloco 7: Reflexões</h2>
       <p className="form-section-desc">Esta é a parte mais valiosa do seu PDI. Pense com carinho antes de responder.</p>
       
@@ -559,7 +699,7 @@ export default function QuestionarioPage() {
   );
 
   const renderBloco8 = () => (
-    <div className="animate-fade-in" style={{ textAlign: "center", padding: "20px 0" }}>
+    <div className="animate-fade-in no-print" style={{ textAlign: "center", padding: "20px 0" }}>
       <div style={{ fontSize: 64, marginBottom: 20 }}>🤝</div>
       <h2 className="form-section-title mb-16 text-gold">Quase lá! Preparando o seu 1:1</h2>
       <p className="form-section-desc mx-auto" style={{ maxWidth: "600px", marginBottom: "32px" }}>
@@ -599,7 +739,7 @@ export default function QuestionarioPage() {
   const STEP_TITLES = ["Bem-vindo", "Contexto", "Triagem", "Técnico", "Atitudes", "Direção", "Metas", "Reflexão", "Envio"];
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--black)", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px" }}>
+    <div className="no-print" style={{ minHeight: "100vh", background: "var(--black)", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px" }}>
       
       {/* HEADER DO FORMULÁRIO */}
       <div style={{ width: "100%", maxWidth: "800px", marginBottom: "32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -12,6 +12,14 @@ const NIVEL_MAP = {
   "avancado": "Avançado"
 };
 
+// NOVO: Dicionário para traduzir a experiência profissional no PDF e na tela
+const EXP_MAP = {
+  "nenhuma": "Não, nunca trabalhei",
+  "fora": "Já tive estágio/trabalho fora da área de finanças",
+  "estagio_fin": "Já tive estágio em finanças / mercado",
+  "clt_fin": "Já tive (ou tenho) vínculo CLT em finanças"
+};
+
 const COMPORTAMENTAL_MAP = {
   c_oral: "Comunicação Oral", c_escrita: "Comunicação Escrita", c_equipe: "Trabalho em Equipe",
   c_lider: "Liderança", c_proat: "Proatividade", c_org: "Organização e Tempo",
@@ -86,7 +94,43 @@ export default function DashboardPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    const printElement = document.getElementById("print-report");
+    if (!printElement) return;
+
+    const janelaPrint = window.open('', '', 'width=900,height=650');
+    
+    janelaPrint.document.write(`
+      <html>
+        <head>
+          <title>Relatório PDI - ${editingUserName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: black; padding: 40px; background: white; margin: 0; }
+            * { box-sizing: border-box; }
+            .print-section { border-bottom: 1px solid #ddd; margin-bottom: 20px; padding-bottom: 10px; page-break-inside: avoid; }
+            .print-item { font-size: 14px; margin-bottom: 6px; }
+            .print-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #333; }
+            h1 { font-size: 26px; margin: 0; font-weight: bold; text-align: center; }
+            h2 { font-size: 18px; font-weight: normal; margin: 8px 0 0; text-align: center; }
+            .header-border { border-bottom: 2px solid black; padding-bottom: 15px; margin-bottom: 25px; }
+            .footer { text-align: center; font-size: 11px; color: #666; margin-top: 40px; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printElement.innerHTML}
+        </body>
+      </html>
+    `);
+
+    janelaPrint.document.close();
+    janelaPrint.focus();
+    
+    setTimeout(() => {
+      janelaPrint.print();
+      janelaPrint.close();
+    }, 300);
   };
 
   const handleManageStudentGoals = async (studentId, studentName) => {
@@ -138,7 +182,7 @@ export default function DashboardPage() {
   // ============================================================================
 
   const renderPainelCentral = () => (
-    <div className="page active animate-fade-in no-print">
+    <div className="page active animate-fade-in">
       <div className="page-header">
         <div className="page-eyebrow">Visão Geral</div>
         <h1 className="page-title">Olá, {primeiroNome} 👋</h1>
@@ -172,7 +216,7 @@ export default function DashboardPage() {
   );
 
   const renderMeuPDI = () => (
-    <div className="page active animate-fade-in no-print">
+    <div className="page active animate-fade-in">
       <div className="page-header">
         <div className="page-eyebrow">Módulo de Acompanhamento</div>
         <h1 className="page-title">Meu PDI</h1>
@@ -186,7 +230,7 @@ export default function DashboardPage() {
   );
 
   const renderMetas = () => (
-    <div className="page active animate-fade-in no-print">
+    <div className="page active animate-fade-in">
       <div className="page-header">
         <div className="page-eyebrow">Gestão de Entregas</div>
         <h1 className="page-title">Minhas Metas</h1>
@@ -227,7 +271,7 @@ export default function DashboardPage() {
     
     if (!questionario) {
       return (
-        <div className="page active animate-fade-in no-print">
+        <div className="page active animate-fade-in">
           <div className="page-header">
             <button onClick={() => setAdminView("list")} className="topbar-btn mb-20">← Voltar para lista</button>
             <h1 className="page-title text-gold">Diagnóstico: {editingUserName}</h1>
@@ -248,23 +292,10 @@ export default function DashboardPage() {
     });
 
     return (
-      <div className="page active animate-fade-in print-area" style={{background: 'var(--black)', padding: '20px'}}>
+      <div className="page active animate-fade-in" style={{background: 'var(--black)', padding: '20px'}}>
         
-        {/* CSS MÁGICO PARA O PDF */}
-        <style>{`
-          @media print { 
-            .no-print { display: none !important; } 
-            body { background: white !important; color: black !important; } 
-            .print-area { background: white !important; padding: 0 !important; border: none !important; } 
-            * { color: black !important; }
-            .print-section { border-bottom: 1px solid #ddd; margin-bottom: 20px; padding-bottom: 10px; page-break-inside: avoid; }
-            .print-item { font-size: 14px; margin-bottom: 6px; }
-            .print-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #333 !important; }
-          }
-        `}</style>
-
-        {/* --- SITE NORMAL (no-print) --- */}
-        <div className="page-header no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        {/* --- SITE NORMAL (CABEÇALHO) --- */}
+        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <button onClick={() => setAdminView("list")} className="topbar-btn mb-20">← Voltar para lista</button>
             <div className="page-eyebrow">Diagnóstico Oficial Preenchido</div>
@@ -276,11 +307,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ---------------- ESTRUTURA INVISÍVEL NA TELA, MAS QUE APARECE NO PDF ---------------- */}
-        <div className="print-only" style={{ display: 'none' }}>
-          <div style={{ textAlign: 'center', borderBottom: '2px solid black', paddingBottom: '15px', marginBottom: '25px' }}>
-            <h1 style={{ fontSize: '26px', margin: 0, fontWeight: 'bold' }}>Plano de Desenvolvimento Individual</h1>
-            <h2 style={{ fontSize: '18px', fontWeight: 'normal', margin: '8px 0 0' }}>Liga Acadêmica de Mercado Financeiro (LAMF5)</h2>
+        {/* ---------------- O RELATÓRIO DO PDF INVISÍVEL ---------------- */}
+        <div id="print-report" style={{ display: 'none' }}>
+          <div className="header-border">
+            <h1>Plano de Desenvolvimento Individual</h1>
+            <h2>Liga Acadêmica de Mercado Financeiro (LAMF5)</h2>
           </div>
 
           <div className="print-section">
@@ -289,16 +320,52 @@ export default function DashboardPage() {
             <p className="print-item"><strong>Curso/Período:</strong> {r.curso} - {r.periodo}º Período</p>
             <p className="print-item"><strong>CRA:</strong> {r.cra || "Não informado"}</p>
             <p className="print-item"><strong>Entrada na Liga:</strong> {r.entrada_liga}</p>
-            <p className="print-item"><strong>Experiência Profissional:</strong> {r.exp_profissional}</p>
+            {/* CORRIGIDO: Experiência Profissional exibe a frase completa */}
+            <p className="print-item"><strong>Experiência Profissional:</strong> {EXP_MAP[r.exp_profissional] || r.exp_profissional}</p>
             <p className="print-item"><strong>Horas Disponíveis:</strong> {r.horas_disp}</p>
           </div>
 
+          {/* CORRIGIDO: Bloco 2 & 3 exibe todas as notas técnicas dinamicamente */}
           <div className="print-section">
-            <h3 className="print-title">Bloco 2 & 3: Triagem e Destaques Técnicos</h3>
+            <h3 className="print-title">Bloco 2 & 3: Autoavaliação Técnica</h3>
             <p className="print-item"><strong>Trilha Nivelada:</strong> {r.nivel?.toUpperCase()}</p>
-            <p className="print-item"><strong>Três pontos fortes:</strong> {r.tec_in_fortes || r.tec_mid_fortes || r.tec_adv_fortes || "Não preenchido"}</p>
-            <p className="print-item"><strong>Três pontos a melhorar:</strong> {r.tec_in_melhorar || r.tec_mid_melhorar || r.tec_adv_melhorar || "Não preenchido"}</p>
-            {r.tec_adv_descarte && <p className="print-item"><strong>Áreas Descartadas:</strong> {r.tec_adv_descarte}</p>}
+            
+            {r.nivel === "iniciante" || r.nivel === "basico" ? (
+              <>
+                <p className="print-item"><strong>Matemática financeira básica:</strong> {r.tec_in_math}/5</p>
+                <p className="print-item"><strong>Economia (inflação, Selic, PIB):</strong> {r.tec_in_eco}/5</p>
+                <p className="print-item"><strong>Bolsa de valores:</strong> {r.tec_in_bolsa}/5</p>
+                <p className="print-item"><strong>Tipos de investimento:</strong> {r.tec_in_tipos}/5</p>
+                <p className="print-item"><strong>Excel básico:</strong> {r.tec_in_excel}/5</p>
+                <p className="print-item"><strong>Vocabulário:</strong> {(r.tec_in_vocab || []).join(', ') || "Nenhum"}</p>
+                <p className="print-item" style={{ marginTop: '12px' }}><strong>Três pontos fortes:</strong><br/>{r.tec_in_fortes}</p>
+                <p className="print-item"><strong>Três pontos a melhorar:</strong><br/>{r.tec_in_melhorar}</p>
+              </>
+            ) : r.nivel === "intermediario" ? (
+              <>
+                <p className="print-item"><strong>Análise fundamentalista:</strong> {r.tec_mid_fund}/5</p>
+                <p className="print-item"><strong>Valuation básico:</strong> {r.tec_mid_val}/5</p>
+                <p className="print-item"><strong>Contabilidade aplicada:</strong> {r.tec_mid_cont}/5</p>
+                <p className="print-item"><strong>Macroeconomia aplicada:</strong> {r.tec_mid_macro}/5</p>
+                <p className="print-item"><strong>Excel intermediário:</strong> {r.tec_mid_excel}/5</p>
+                <p className="print-item"><strong>Redação técnica:</strong> {r.tec_mid_red}/5</p>
+                <p className="print-item"><strong>Relatório/tese escrito:</strong> {r.tec_mid_relatorio || "Não informado"}</p>
+                <p className="print-item" style={{ marginTop: '12px' }}><strong>Três pontos fortes:</strong><br/>{r.tec_mid_fortes}</p>
+                <p className="print-item"><strong>Três pontos a melhorar:</strong><br/>{r.tec_mid_melhorar}</p>
+              </>
+            ) : (
+              <>
+                <p className="print-item"><strong>3-Statement Model:</strong> {r.tec_adv_mod}/5</p>
+                <p className="print-item"><strong>DCF Avançado:</strong> {r.tec_adv_dcf}/5</p>
+                <p className="print-item"><strong>LBO e PE Return:</strong> {r.tec_adv_lbo}/5</p>
+                <p className="print-item"><strong>M&A (Due Diligence):</strong> {r.tec_adv_ma}/5</p>
+                <p className="print-item"><strong>Excel Avançado (VBA):</strong> {r.tec_adv_excel}/5</p>
+                <p className="print-item"><strong>Python/Dados:</strong> {r.tec_adv_py}/5</p>
+                <p className="print-item"><strong>Áreas descartadas:</strong> {r.tec_adv_descarte || "Não preenchido"}</p>
+                <p className="print-item" style={{ marginTop: '12px' }}><strong>Três pontos fortes:</strong><br/>{r.tec_adv_fortes}</p>
+                <p className="print-item"><strong>Três pontos a melhorar:</strong><br/>{r.tec_adv_melhorar}</p>
+              </>
+            )}
           </div>
 
           <div className="print-section">
@@ -329,10 +396,10 @@ export default function DashboardPage() {
 
           <div className="print-section">
             <h3 className="print-title">Bloco 6: Metas Concretas (Próximos 6 meses)</h3>
-            <p className="print-item"><strong>Acadêmicas:</strong><br/>1. {r.m_acad_1}<br/>2. {r.m_acad_2}<br/>3. {r.m_acad_3}</p>
-            <p className="print-item"><strong>Certificações/Cursos:</strong><br/>1. {r.m_cert_1}<br/>2. {r.m_cert_2}<br/>3. {r.m_cert_3}</p>
-            <p className="print-item"><strong>Profissionais:</strong><br/>1. {r.m_prof_1}<br/>2. {r.m_prof_2}<br/>3. {r.m_prof_3}</p>
-            {r.m_pes_1 && <p className="print-item"><strong>Pessoais:</strong> 1. {r.m_pes_1}</p>}
+            <p className="print-item"><strong>Acadêmicas:</strong><br/>1. {r.m_acad_1}<br/>2. {r.m_acad_2 || "-"}<br/>3. {r.m_acad_3 || "-"}</p>
+            <p className="print-item"><strong>Certificações/Cursos:</strong><br/>1. {r.m_cert_1}<br/>2. {r.m_cert_2 || "-"}<br/>3. {r.m_cert_3 || "-"}</p>
+            <p className="print-item"><strong>Profissionais:</strong><br/>1. {r.m_prof_1}<br/>2. {r.m_prof_2 || "-"}<br/>3. {r.m_prof_3 || "-"}</p>
+            {r.m_pes_1 && <p className="print-item"><strong>Pessoais:</strong> 1. {r.m_pes_1 || "-"}</p>}
           </div>
 
           <div className="print-section">
@@ -355,14 +422,11 @@ export default function DashboardPage() {
             <p className="print-item"><strong>Informação Confidencial:</strong> {r.log_info || "Nenhuma"}</p>
           </div>
           
-          <p style={{ textAlign: 'center', fontSize: '11px', color: '#666', marginTop: '40px' }}>
-            Documento Oficial Gerado pelo Sistema de Gestão de Pessoas da LAMF5.
-          </p>
+          <div className="footer">Documento Oficial Gerado pelo Sistema de Gestão de Pessoas da LAMF5.</div>
         </div>
 
-
-        {/* ---------------- RESUMÃO ESTRATÉGICO (VISÃO DO SITE) ---------------- */}
-        <div className="no-print">
+        {/* ---------------- RESUMÃO ESTRATÉGICO (VISÃO DO SITE DO ADMIN) ---------------- */}
+        <div>
           <h2 className="form-section-title mb-16 mt-32" style={{ fontSize: "20px", color: "var(--text-muted)" }}>Resumo Analítico para o Mentor</h2>
           <div className="grid-2 gap-20 mb-32">
             <div className="card" style={{ padding: "20px", borderTop: "3px solid var(--info)" }}>
@@ -395,7 +459,7 @@ export default function DashboardPage() {
             </ul>
           </div>
 
-          {/* ---------------- QUESTIONÁRIO NA ÍNTEGRA (VISÃO DO SITE) ---------------- */}
+          {/* ---------------- QUESTIONÁRIO NA ÍNTEGRA (VISÃO DO SITE DO ADMIN) ---------------- */}
           <div style={{ borderTop: "1px solid var(--border)", paddingTop: "32px" }}>
             <h2 className="form-section-title mb-24" style={{ fontSize: "20px", color: "var(--text-muted)" }}>Respostas na Íntegra</h2>
             
@@ -407,17 +471,68 @@ export default function DashboardPage() {
                   <p><strong>Curso/Período:</strong> {r.curso} - {r.periodo}º Período</p>
                   <p><strong>CRA:</strong> {r.cra || "Não informado"}</p>
                   <p><strong>Entrada na Liga:</strong> {r.entrada_liga}</p>
-                  <p><strong>Experiência Profissional:</strong> {r.exp_profissional}</p>
+                  {/* CORRIGIDO NA TELA TAMBÉM */}
+                  <p><strong>Experiência Profissional:</strong> {EXP_MAP[r.exp_profissional] || r.exp_profissional}</p>
                 </div>
               </details>
 
               <details className="form-section" style={{ padding: "20px", margin: 0 }}>
                 <summary style={{ fontSize: "16px", fontWeight: "bold", cursor: "pointer", color: "var(--gold-light)" }}>Bloco 3: Autoavaliação Técnica</summary>
                 <div className="mt-16" style={{ fontSize: "14px", lineHeight: "1.8", color: "var(--text-secondary)" }}>
-                  <p><strong>Três pontos fortes:</strong> {r.tec_in_fortes || r.tec_mid_fortes || r.tec_adv_fortes || "Não informado"}</p>
-                  <p><strong>Três pontos a melhorar:</strong> {r.tec_in_melhorar || r.tec_mid_melhorar || r.tec_adv_melhorar || "Não informado"}</p>
-                  {r.tec_adv_descarte && <p><strong>Áreas descartadas (Avançado):</strong> {r.tec_adv_descarte}</p>}
-                  <p className="text-muted mt-8" style={{fontSize: "12px"}}>*A avaliação técnica completa (escalas 1-5) está salva no banco de dados e presente no PDF.</p>
+                  {r.nivel === "iniciante" || r.nivel === "basico" ? (
+                    <>
+                      <p><strong>Matemática financeira básica:</strong> {r.tec_in_math}/5</p>
+                      <p><strong>Economia (inflação, Selic, PIB):</strong> {r.tec_in_eco}/5</p>
+                      <p><strong>Bolsa de valores:</strong> {r.tec_in_bolsa}/5</p>
+                      <p><strong>Tipos de investimento:</strong> {r.tec_in_tipos}/5</p>
+                      <p><strong>Excel básico:</strong> {r.tec_in_excel}/5</p>
+                      <p><strong>Vocabulário:</strong> {(r.tec_in_vocab || []).join(', ') || "Nenhum"}</p>
+                      <p className="mt-12"><strong>Três pontos fortes:</strong><br/>{r.tec_in_fortes}</p>
+                      <p className="mt-12"><strong>Três pontos a melhorar:</strong><br/>{r.tec_in_melhorar}</p>
+                    </>
+                  ) : r.nivel === "intermediario" ? (
+                    <>
+                      <p><strong>Análise fundamentalista:</strong> {r.tec_mid_fund}/5</p>
+                      <p><strong>Valuation básico:</strong> {r.tec_mid_val}/5</p>
+                      <p><strong>Contabilidade aplicada:</strong> {r.tec_mid_cont}/5</p>
+                      <p><strong>Macroeconomia aplicada:</strong> {r.tec_mid_macro}/5</p>
+                      <p><strong>Excel intermediário:</strong> {r.tec_mid_excel}/5</p>
+                      <p><strong>Redação técnica:</strong> {r.tec_mid_red}/5</p>
+                      <p className="mt-12"><strong>Relatório/tese escrito:</strong><br/>{r.tec_mid_relatorio || "Não informado"}</p>
+                      <p className="mt-12"><strong>Três pontos fortes:</strong><br/>{r.tec_mid_fortes}</p>
+                      <p className="mt-12"><strong>Três pontos a melhorar:</strong><br/>{r.tec_mid_melhorar}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p><strong>3-Statement Model:</strong> {r.tec_adv_mod}/5</p>
+                      <p><strong>DCF Avançado:</strong> {r.tec_adv_dcf}/5</p>
+                      <p><strong>LBO e PE Return:</strong> {r.tec_adv_lbo}/5</p>
+                      <p><strong>M&A (Due Diligence):</strong> {r.tec_adv_ma}/5</p>
+                      <p><strong>Excel Avançado (VBA):</strong> {r.tec_adv_excel}/5</p>
+                      <p><strong>Python/Dados:</strong> {r.tec_adv_py}/5</p>
+                      <p className="mt-12"><strong>Áreas descartadas:</strong><br/>{r.tec_adv_descarte}</p>
+                      <p className="mt-12"><strong>Três pontos fortes:</strong><br/>{r.tec_adv_fortes}</p>
+                      <p className="mt-12"><strong>Três pontos a melhorar:</strong><br/>{r.tec_adv_melhorar}</p>
+                    </>
+                  )}
+                </div>
+              </details>
+
+              <details className="form-section" style={{ padding: "20px", margin: 0 }}>
+                <summary style={{ fontSize: "16px", fontWeight: "bold", cursor: "pointer", color: "var(--gold-light)" }}>Bloco 4: Autoavaliação Comportamental</summary>
+                <div className="mt-16" style={{ fontSize: "14px", lineHeight: "1.8", color: "var(--text-secondary)" }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+                    <p><strong>Comunicação Oral:</strong> {r.c_oral}/5</p>
+                    <p><strong>Comunicação Escrita:</strong> {r.c_escrita}/5</p>
+                    <p><strong>Trabalho em Equipe:</strong> {r.c_equipe}/5</p>
+                    <p><strong>Liderança:</strong> {r.c_lider}/5</p>
+                    <p><strong>Proatividade:</strong> {r.c_proat}/5</p>
+                    <p><strong>Organização/Tempo:</strong> {r.c_org}/5</p>
+                    <p><strong>Resiliência:</strong> {r.c_resil}/5</p>
+                    <p><strong>Pensamento Analítico:</strong> {r.c_analise}/5</p>
+                    <p><strong>Networking:</strong> {r.c_net}/5</p>
+                  </div>
+                  <p><strong>Situação Prática (STAR):</strong><br/>{r.c_star}</p>
                 </div>
               </details>
 
@@ -430,6 +545,16 @@ export default function DashboardPage() {
                   <p><strong>Visão 3 Anos:</strong> {r.d_3anos}</p>
                   <p><strong>Visão 5 Anos:</strong> {r.d_5anos}</p>
                   {r.d_admira && <p><strong>Admira:</strong> {r.d_admira}</p>}
+                </div>
+              </details>
+
+              <details className="form-section" style={{ padding: "20px", margin: 0 }}>
+                <summary style={{ fontSize: "16px", fontWeight: "bold", cursor: "pointer", color: "var(--gold-light)" }}>Bloco 6: Metas Concretas</summary>
+                <div className="mt-16" style={{ fontSize: "14px", lineHeight: "1.8", color: "var(--text-secondary)" }}>
+                  <p style={{marginBottom:"12px"}}><strong>Acadêmicas:</strong><br/>1. {r.m_acad_1}<br/>2. {r.m_acad_2 || "-"}<br/>3. {r.m_acad_3 || "-"}</p>
+                  <p style={{marginBottom:"12px"}}><strong>Certificações/Cursos:</strong><br/>1. {r.m_cert_1}<br/>2. {r.m_cert_2 || "-"}<br/>3. {r.m_cert_3 || "-"}</p>
+                  <p style={{marginBottom:"12px"}}><strong>Profissionais:</strong><br/>1. {r.m_prof_1}<br/>2. {r.m_prof_2 || "-"}<br/>3. {r.m_prof_3 || "-"}</p>
+                  <p style={{marginBottom:"12px"}}><strong>Pessoais:</strong><br/>1. {r.m_pes_1 || "-"}<br/>2. {r.m_pes_2 || "-"}</p>
                 </div>
               </details>
 
@@ -451,7 +576,7 @@ export default function DashboardPage() {
                 <div className="mt-16" style={{ fontSize: "14px", lineHeight: "1.8", color: "var(--text-secondary)" }}>
                   <p><strong>Disponibilidade:</strong> {r.log_disp}</p>
                   <p><strong>Formato preferido:</strong> {r.log_formato}</p>
-                  <p><strong>Mentor Preferido:</strong> {r.log_mentor}</p>
+                  <p><strong>Mentor Preferido:</strong> {r.log_mentor || "Sem preferência"}</p>
                   {r.log_info && <p><strong>Info Confidencial pro Mentor:</strong> {r.log_info}</p>}
                 </div>
               </details>
@@ -469,7 +594,7 @@ export default function DashboardPage() {
 
     if (adminView === "goals") {
       return (
-        <div className="page active animate-fade-in no-print">
+        <div className="page active animate-fade-in">
           <div className="page-header">
             <button onClick={() => setAdminView("list")} className="topbar-btn mb-20">← Voltar para lista</button>
             <div className="page-eyebrow">Atribuição de Tarefas Oficiais</div>
@@ -512,7 +637,7 @@ export default function DashboardPage() {
     }
 
     return (
-      <div className="page active animate-fade-in no-print">
+      <div className="page active animate-fade-in">
         <div className="page-header">
           <div className="page-eyebrow">Acesso Restrito</div>
           <h1 className="page-title">Painel Administrativo</h1>
@@ -576,7 +701,7 @@ export default function DashboardPage() {
 
   return (
     <div className="app">
-      <aside className="sidebar no-print">
+      <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-icon">L5</div>
           <div className="logo-text"><span className="logo-title">Sistema LAMF5</span><span className="logo-sub">Gestão de Pessoas</span></div>
@@ -596,6 +721,10 @@ export default function DashboardPage() {
               <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 0h6v6h-6z"/></svg> Painel Central
             </div>
             
+            <div className="nav-item" onClick={() => router.push('/dashboard/meuperfil')}>
+              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Meu Perfil
+            </div>
+
             <div className="nav-item" onClick={() => router.push('/questionario')}>
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Questionário Oficial
             </div>
@@ -623,7 +752,7 @@ export default function DashboardPage() {
       </aside>
       
       <main className="main">
-        <header className="topbar no-print">
+        <header className="topbar">
           <div className="topbar-breadcrumb">
             <span>Sistema LAMF5</span><span>›</span><span className="current" style={{ textTransform: 'capitalize' }}>{activeTab === 'dashboard' ? 'Painel Central' : activeTab.replace("_", " ")}</span>
           </div>
