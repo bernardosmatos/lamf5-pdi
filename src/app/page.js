@@ -4,57 +4,16 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useRouter } from "next/navigation";
 
-// ============================================================================
-// WHITELIST (LISTA DE E-MAILS AUTORIZADOS)
-// ============================================================================
-// Coloque aqui os e-mails de todos os membros da liga. 
-// Deixe tudo em letras minúsculas.
-const EMAILS_AUTORIZADOS = [
-  "alexandre.marculino@ufv.br",
-"alisson.anastacio@ufv.br",
-"ariane.cespedes@ufv.br",
-"Arthur.p.correa@ufv.br",
-"Arthur.madeira@ufv.br",
-"barbara.more@ufv.br",
-"bernardo.matos@ufv.br",
-"jeong.changyoung@ufv.br",
-"danilo.s.ribeiro@ufv.br",
-"enzo.goyata@ufv.br",
-"fabricio.gibbert@ufv.br",
-"gabriel.mariosa@ufv.br",
-"gabriel.h.olimpio@ufv.br",
-"gabriel.s.prado@ufv.br",
-"gabriela.silva.oliveira@ufv.br",
-"gabriella.conceicao@ufv.br",
-"ian.sousa@ufv.br",
-"joao.molina@ufv.br",
-"kawa.santos@ufv.br",
-"marcos.a.rocha@ufv.br",
-"maria.makiyama@ufv.br",
-"mariana.s.vieira@ufv.br",
-"matheus.f.andrade@ufv.br",
-"otto.dias@ufv.br",
-"rafael.severino@ufv.br",
-"rhayssa.joaquim@ufv.br",
-"joao.p.paula@ufv.br"
-];
-
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const router = useRouter();
 
-  // Campos do formulário
-  const [nome, setNome] = useState("");
+  // Campos de Login
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
-
-  // Visibilidade das senhas
   const [showSenha, setShowSenha] = useState(false);
-  const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
 
   // Verifica se o usuário já está logado
   useEffect(() => {
@@ -69,77 +28,21 @@ export default function LoginPage() {
     checkUser();
   }, [router]);
 
-  const handleAuth = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsSaving(true);
     setMessage({ type: "", text: "" });
 
-    // Pega o e-mail digitado, remove espaços em branco e deixa tudo minúsculo
     const emailTratado = email.trim().toLowerCase();
 
     try {
-      if (isLogin) {
-        // LÓGICA DE LOGIN
-        const { error } = await supabase.auth.signInWithPassword({ email: emailTratado, password: senha });
-        if (error) throw error;
-        
-        router.push("/dashboard");
-
-      } else {
-        // LÓGICA DE CADASTRO E VERIFICAÇÃO DA WHITELIST
-        
-        // 1. Trava da Whitelist
-        if (!EMAILS_AUTORIZADOS.includes(emailTratado)) {
-          setMessage({ type: "error", text: "Acesso negado: Este e-mail não está na lista de membros autorizados da LAMF5. Contate a Gestão de Pessoas." });
-          setIsSaving(false);
-          return;
-        }
-
-        // 2. Trava das Senhas
-        if (senha !== confirmarSenha) {
-          setMessage({ type: "error", text: "As senhas não coincidem. Verifique a digitação." });
-          setIsSaving(false);
-          return;
-        }
-
-        if (senha.length < 6) {
-          setMessage({ type: "error", text: "A senha deve ter pelo menos 6 caracteres." });
-          setIsSaving(false);
-          return;
-        }
-
-        // 3. Cadastra no Supabase
-        const { data, error } = await supabase.auth.signUp({
-          email: emailTratado,
-          password: senha,
-          options: {
-            data: {
-              nome_completo: nome,
-            }
-          }
-        });
-
-        if (error) throw error;
-
-        // Verifica se o Supabase exige confirmação de email (se sim, a session vem nula no cadastro)
-        if (data?.user && !data?.session) {
-          setMessage({ type: "success", text: "Cadastro autorizado! Verifique sua caixa de entrada (ou spam) para confirmar seu e-mail antes de logar." });
-          // Limpa os campos e volta pro login
-          setNome("");
-          setEmail("");
-          setSenha("");
-          setConfirmarSenha("");
-          setIsLogin(true);
-        } else {
-          // Se a confirmação de email estiver desligada, ele loga direto
-          router.push("/dashboard");
-        }
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email: emailTratado, password: senha });
+      if (error) throw error;
+      
+      router.push("/dashboard");
     } catch (err) {
-      // Tradução de alguns erros comuns do Supabase
       let errorMsg = err.message;
       if (errorMsg.includes("Invalid login credentials")) errorMsg = "E-mail ou senha incorretos.";
-      if (errorMsg.includes("User already registered")) errorMsg = "Este e-mail já está cadastrado.";
       if (errorMsg.includes("Email not confirmed")) errorMsg = "Por favor, confirme seu e-mail antes de fazer login.";
       
       setMessage({ type: "error", text: errorMsg });
@@ -148,7 +51,6 @@ export default function LoginPage() {
     }
   };
 
-  // Ícones do Olho
   const IconEyeOpen = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
   const IconEyeClosed = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>;
 
@@ -165,7 +67,7 @@ export default function LoginPage() {
         
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ width: '48px', height: '48px', background: 'var(--gold)', color: 'var(--black)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold', margin: '0 auto 16px' }}>L5</div>
-          <h1 style={{ fontSize: '24px', color: 'var(--text-primary)', marginBottom: '8px' }}>{isLogin ? "Acesse sua conta" : "Criar nova conta"}</h1>
+          <h1 style={{ fontSize: '24px', color: 'var(--text-primary)', marginBottom: '8px' }}>Acesse sua conta</h1>
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Sistema de Gestão de PDI - LAMF5</p>
         </div>
 
@@ -175,17 +77,9 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleAuth}>
-          
-          {!isLogin && (
-            <div className="form-group mb-20">
-              <label className="form-label" style={{ fontSize: '14px' }}>Nome Completo</label>
-              <input className="form-input" required value={nome} onChange={e => setNome(e.target.value)} style={inputStyle} placeholder="Seu nome completo" />
-            </div>
-          )}
-
+        <form onSubmit={handleLogin}>
           <div className="form-group mb-20">
-            <label className="form-label" style={{ fontSize: '14px' }}>E-mail corporativo ou pessoal</label>
+            <label className="form-label" style={{ fontSize: '14px' }}>E-mail cadastrado</label>
             <input type="email" className="form-input" required value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} placeholder="exemplo@email.com" />
           </div>
 
@@ -199,7 +93,7 @@ export default function LoginPage() {
                 value={senha} 
                 onChange={e => setSenha(e.target.value)} 
                 style={{ ...inputStyle, paddingRight: "50px", width: "100%" }}
-                placeholder="Mínimo de 6 caracteres"
+                placeholder="Sua senha de acesso"
               />
               <button 
                 type="button" 
@@ -211,50 +105,19 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {!isLogin && (
-            <div className="form-group mb-24">
-              <label className="form-label" style={{ fontSize: '14px' }}>Confirmar Senha</label>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                <input 
-                  type={showConfirmarSenha ? "text" : "password"} 
-                  className="form-input" 
-                  required 
-                  value={confirmarSenha} 
-                  onChange={e => setConfirmarSenha(e.target.value)} 
-                  style={{ ...inputStyle, paddingRight: "50px", width: "100%" }}
-                  placeholder="Repita sua senha"
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setShowConfirmarSenha(!showConfirmarSenha)}
-                  style={{ position: "absolute", right: "14px", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", padding: 0 }}
-                >
-                  {showConfirmarSenha ? <IconEyeClosed /> : <IconEyeOpen />}
-                </button>
-              </div>
-            </div>
-          )}
-
           <button type="submit" className="topbar-btn primary w-full mt-8" style={{ padding: '16px', fontSize: '16px', fontWeight: 'bold', borderRadius: '8px' }} disabled={isSaving}>
-            {isSaving ? "Processando..." : (isLogin ? "Entrar no Sistema" : "Cadastrar")}
+            {isSaving ? "Entrando..." : "Entrar no Sistema"}
           </button>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '32px', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            {isLogin ? "Ainda não faz parte da Liga?" : "Já possui uma conta ativa?"}
-          </p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Ainda não faz parte da Liga?</p>
           <button 
             type="button" 
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setMessage({ type: "", text: "" }); // Limpa erros ao trocar de tela
-              setSenha("");
-              setConfirmarSenha("");
-            }}
+            onClick={() => router.push('/cadastro')}
             style={{ background: 'none', border: 'none', color: 'var(--gold)', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}
           >
-            {isLogin ? "Criar meu acesso oficial" : "Fazer login no sistema"}
+            Criar meu acesso oficial
           </button>
         </div>
 
