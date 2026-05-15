@@ -189,7 +189,8 @@ export default function DashboardPage() {
         <p className="page-subtitle">Acompanhe seu desenvolvimento na Liga Acadêmica de Mercado Financeiro.</p>
       </div>
       
-      <div className="grid-2 gap-24 mb-24">
+      {/* ATUALIZAÇÃO: Grid alterado para 3 colunas para acomodar o card do Quiz */}
+      <div className="grid-3 gap-24 mb-24">
         <div className="card" style={{ borderLeft: '4px solid var(--gold)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: '32px', marginBottom: '16px' }}>📝</div>
           <h3 className="form-section-title mb-8" style={{ fontSize: '20px' }}>Questionário Oficial PDI</h3>
@@ -198,6 +199,18 @@ export default function DashboardPage() {
           </p>
           <button onClick={() => router.push('/questionario')} className="topbar-btn primary w-full" style={{ padding: '14px', fontSize: '15px' }}>
             Acessar Questionário →
+          </button>
+        </div>
+
+        {/* ATUALIZAÇÃO: Novo Cartão do Quiz Vocacional */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: '32px', marginBottom: '16px' }}>🧭</div>
+          <h3 className="form-section-title mb-8" style={{ fontSize: '20px' }}>Quiz Vocacional</h3>
+          <p className="text-secondary mb-24" style={{ fontSize: '14px', lineHeight: '1.6', flex: 1 }}>
+            Descubra qual das 22 áreas do mercado financeiro mais combina com seu perfil técnico e psicológico.
+          </p>
+          <button onClick={() => router.push('/quiz')} className="topbar-btn w-full" style={{ padding: '14px', fontSize: '15px', border: '1px solid var(--gold)', color: 'var(--gold)' }}>
+            Fazer o Teste Rápido
           </button>
         </div>
 
@@ -652,6 +665,8 @@ export default function DashboardPage() {
                 <th>Nome do Membro</th>
                 <th>Diretoria</th>
                 <th>Status Questionário</th>
+                {/* ATUALIZAÇÃO: NOVA COLUNA NO ADMIN */}
+                <th>Resultado Quiz</th>
                 <th style={{ textAlign: "right" }}>Ações de Gestão</th>
               </tr>
             </thead>
@@ -660,13 +675,33 @@ export default function DashboardPage() {
                 const isAnswered = allQuestionnaires.some(q => q.member_id === student.id);
                 return (
                   <tr key={student.id}>
-                    <td><div className="inline-row gap-12"><div className="avatar avatar-sm">{student.nome_completo.substring(0, 2).toUpperCase()}</div>{student.nome_completo}</div></td>
+                    <td>
+                      <div className="inline-row gap-12">
+                        <div className="avatar avatar-sm">{(student.nome_completo || "??").substring(0, 2).toUpperCase()}</div>
+                        {student.nome_completo || "Membro Sem Nome"}
+                      </div>
+                    </td>
                     <td><span className="tag">{student.diretoria}</span></td>
                     <td>
                       <span className={`badge ${isAnswered ? 'badge-success' : 'badge-muted'}`}>
                         {isAnswered ? '✓ Respondeu' : 'Pendente'}
                       </span>
                     </td>
+                    
+                    {/* ATUALIZAÇÃO: RESULTADO DO QUIZ EXIBIDO AQUI */}
+                    <td>
+                      {student.quiz_resultado ? (
+                        <div>
+                          <div style={{color: 'var(--gold-light)', fontWeight: '600', fontSize: '13px'}}>{student.quiz_resultado}</div>
+                          <div style={{fontSize: '11px', marginTop: '4px', color: student.quiz_feedback === true ? 'var(--success)' : (student.quiz_feedback === false ? 'var(--danger)' : 'var(--text-muted)')}}>
+                            {student.quiz_feedback === true ? '👍 Concordou' : (student.quiz_feedback === false ? '👎 Discordou' : '⏳ Sem feedback')}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="badge badge-muted" style={{ background: 'transparent', border: '1px dashed var(--border)' }}>Pendente</span>
+                      )}
+                    </td>
+
                     <td style={{ textAlign: "right", display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                       <button 
                         className="topbar-btn" 
@@ -727,6 +762,11 @@ export default function DashboardPage() {
 
             <div className="nav-item" onClick={() => router.push('/questionario')}>
               <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Questionário Oficial
+            </div>
+
+            {/* ATUALIZAÇÃO: NOVO LINK NA BARRA LATERAL PARA O QUIZ */}
+            <div className="nav-item" onClick={() => router.push('/quiz')}>
+              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> Quiz Vocacional
             </div>
 
             <div className={`nav-item ${activeTab === 'meu_pdi' ? 'active' : ''}`} onClick={() => setActiveTab('meu_pdi')}>
