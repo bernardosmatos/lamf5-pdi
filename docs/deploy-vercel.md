@@ -27,17 +27,17 @@ Na tela de importação, abrir "Environment Variables" e adicionar as duas:
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://orcoymigfspunjsqxbtb.supabase.co` | Production, Preview, Development |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a *Publishable key* (`sb_publishable_...`) do painel Supabase | Production, Preview, Development |
 
-Clicar em **Deploy**. Em ~1 min o site está no ar numa URL tipo
-`https://lamf5-pdi.vercel.app`.
+Clicar em **Deploy**. Em ~1 min o site está no ar. A URL de produção atual é
+`https://lamf5ufv.vercel.app` (Vercel → projeto `lamf5` → Settings → Domains).
 
 ### 3. Ajustar o Supabase para aceitar o domínio novo
 
 Painel Supabase → **Authentication → URL Configuration**:
 
-- **Site URL:** `https://lamf5-pdi.vercel.app` (a URL de produção da Vercel).
+- **Site URL:** `https://lamf5ufv.vercel.app` (a URL de produção da Vercel).
 - **Redirect URLs:** adicionar:
-  - `https://lamf5-pdi.vercel.app/**`
-  - `https://*-lamf5-pdi-*.vercel.app/**` (cobre os previews de PR)
+  - `https://lamf5ufv.vercel.app/**`
+  - `https://lamf5-*.vercel.app/**` (cobre os previews de PR)
   - `http://localhost:3000/**` (para continuar rodando local)
 
 Sem isso, o link de confirmação de e-mail do cadastro aponta pro lugar errado.
