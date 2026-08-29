@@ -89,7 +89,7 @@ Reconstruído a partir do código — confirme no painel do Supabase antes de al
 | `id` | uuid (PK) | Igual ao `auth.users.id` |
 | `nome_completo` | text | Nome do membro |
 | `diretoria` | text | `Presidente`, `Vice Presidente`, `Projetos`, `Qualidade`, `Gestão de Pessoas`, `Comunicação` |
-| `perfil` | text | Nível de acesso: `Membro`, `Presidente`/`Presidência`, `Gestão de Pessoas` |
+| `perfil` | text | Nível de acesso. Valores canônicos: `Membro`, `Presidência`, `Gestão de Pessoas`. Definido no cadastro pelo mapa `PERFIL_POR_DIRETORIA` (`cadastro/page.js`). Só `Presidência` e `Gestão de Pessoas` entram em `/administrador`. |
 | `quiz_resultado` | text | Área vencedora do quiz vocacional |
 | `quiz_feedback` | text | Feedback do membro sobre o resultado |
 
@@ -179,10 +179,8 @@ Nunca commitar direto na `main` sem conferir o preview.
 
 ## Dívidas técnicas / problemas conhecidos
 
-- **Inconsistência de `perfil`:** o cadastro grava `"Presidente"`, mas o dashboard
-  e o admin checam `"Presidência"`. Quem se cadastra como Presidente **não ganha**
-  acesso de admin. Padronizar (Fase 3).
-- **Whitelist de e-mails fixa no código** — deveria estar no banco.
+- **Whitelist de e-mails fixa no código** (`EMAILS_AUTORIZADOS` em
+  `cadastro/page.js`) — deveria estar no banco. Alvo da Fase 3b.
 - **Estilos inline gigantes** em quase todas as páginas — dificulta manutenção;
   migrar aos poucos pro `globals.css`/Tailwind.
 - **Sem testes automatizados.**

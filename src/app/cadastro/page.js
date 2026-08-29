@@ -46,6 +46,15 @@ const DIRETORIAS = [
   "Comunicação"
 ];
 
+// Nível de acesso (profiles.perfil) a partir da diretoria escolhida no cadastro.
+// Diretorias fora deste mapa entram como "Membro".
+// ATENÇÃO: estes valores precisam bater EXATAMENTE com as verificações em
+// dashboard/page.js e administrador/page.js.
+const PERFIL_POR_DIRETORIA = {
+  "Presidente": "Presidência",
+  "Gestão de Pessoas": "Gestão de Pessoas",
+};
+
 export default function CadastroPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -105,7 +114,7 @@ export default function CadastroPage() {
           data: {
             nome_completo: nome,
             diretoria: diretoria,
-            perfil: diretoria === "Presidente" || diretoria === "Gestão de Pessoas" ? diretoria : "Membro" // Define acesso basico
+            perfil: PERFIL_POR_DIRETORIA[diretoria] || "Membro" // Define acesso basico
           }
         }
       });
