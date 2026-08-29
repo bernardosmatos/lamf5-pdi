@@ -9,7 +9,8 @@ Gestão de Pessoas e a Presidência têm um painel de administração.
 
 > **Para quem nunca programou:** este arquivo é o "manual" que o Claude Code lê
 > antes de mexer no site. Se você só quer atualizar alguma coisa, veja a seção
-> **"Receitas"** mais abaixo — é só copiar o pedido em português.
+> **"Receitas"** mais abaixo — é só copiar o pedido em português. Guias passo a
+> passo em português estão na pasta [`docs/`](docs/README.md).
 
 ---
 
