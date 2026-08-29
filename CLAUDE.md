@@ -21,7 +21,8 @@ Gestão de Pessoas e a Presidência têm um painel de administração.
 | UI | **React 19** | Componentes em `src/app/**/page.js` |
 | Banco + Login + Storage | **Supabase** (PostgreSQL + Auth + Storage) | Projeto: `orcoymigfspunjsqxbtb` |
 | Estilo | CSS global (`src/app/globals.css`) + estilos inline + Tailwind 4 | Ver "Dívidas técnicas" |
-| Deploy | Vercel (previsto) | Ainda não configurado |
+| Deploy | Vercel | Automático via `main` e previews de PR — ver `docs/deploy-vercel.md` |
+| CI | GitHub Actions (`.github/workflows/ci.yml`) | Roda `lint` + `build` em todo PR |
 | Linguagem | JavaScript (`.js`) | Sem TypeScript apesar do `jsconfig.json` |
 
 ---
