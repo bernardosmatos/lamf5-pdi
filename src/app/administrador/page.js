@@ -38,10 +38,15 @@ export default function AdministradorPage() {
   const [editingUserName, setEditingUserName] = useState("");
   
   // Metas e Upload
-  const [adminStudentGoals, setAdminStudentGoals] = useState([]); 
+  const [adminStudentGoals, setAdminStudentGoals] = useState([]);
   const [newGoal, setNewGoal] = useState({ title: "", description: "", deadline: "", admin_attachment: "", status: "Ainda não começou" });
-  const [adminFile, setAdminFile] = useState(null); 
+  const [adminFile, setAdminFile] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // E-mails autorizados a se cadastrar
+  const [authorizedEmails, setAuthorizedEmails] = useState([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailMsg, setEmailMsg] = useState({ type: "", text: "" });
 
   useEffect(() => {
     async function loadAdminData() {
@@ -188,6 +193,66 @@ export default function AdministradorPage() {
     if(!confirm("Tem certeza que deseja excluir esta meta?")) return;
     await supabase.from('goals').delete().eq('id', goalId);
     setAdminStudentGoals(adminStudentGoals.filter(g => g.id !== goalId));
+  };
+
+  // --- E-MAILS AUTORIZADOS ---------------------------------------------------
+  const carregarEmailsAutorizados = async () => {
+    const { data, error } = await supabase
+      .from('emails_autorizados')
+      .select('email, criado_em')
+      .order('email', { ascending: true });
+    if (error) {
+      setEmailMsg({ type: "error", text: "Erro ao carregar a lista: " + error.message });
+      return;
+    }
+    setAuthorizedEmails(data || []);
+  };
+
+  const handleOpenEmails = async () => {
+    setEmailMsg({ type: "", text: "" });
+    setAdminView("emails");
+    await carregarEmailsAutorizados();
+  };
+
+  const handleAddEmail = async (e) => {
+    e.preventDefault();
+    setEmailMsg({ type: "", text: "" });
+    const email = newEmail.trim().toLowerCase();
+
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailMsg({ type: "error", text: "E-mail inválido." });
+      return;
+    }
+    if (authorizedEmails.some(item => item.email === email)) {
+      setEmailMsg({ type: "error", text: "Esse e-mail já está na lista." });
+      return;
+    }
+
+    setIsSaving(true);
+    const { error } = await supabase
+      .from('emails_autorizados')
+      .insert([{ email, adicionado_por: userProfile?.id }]);
+    setIsSaving(false);
+
+    if (error) {
+      setEmailMsg({ type: "error", text: "Erro ao adicionar: " + error.message });
+      return;
+    }
+    setNewEmail("");
+    setEmailMsg({ type: "success", text: `${email} autorizado.` });
+    await carregarEmailsAutorizados();
+  };
+
+  const handleRemoveEmail = async (email) => {
+    if (!confirm(`Remover ${email} da lista de autorizados? Quem ainda não se cadastrou perde o acesso.`)) return;
+    const { error } = await supabase.from('emails_autorizados').delete().eq('email', email);
+    if (error) {
+      setEmailMsg({ type: "error", text: "Erro ao remover: " + error.message });
+      return;
+    }
+    setAuthorizedEmails(authorizedEmails.filter(item => item.email !== email));
+    setEmailMsg({ type: "success", text: `${email} removido.` });
   };
 
   if (loading) {
@@ -384,8 +449,78 @@ export default function AdministradorPage() {
     );
   };
 
+  const renderEmailsView = () => (
+    <div className="page active animate-fade-in">
+      <div className="page-header">
+        <button onClick={() => setAdminView("list")} className="topbar-btn mb-20">← Voltar para lista</button>
+        <div className="page-eyebrow">Controle de Acesso</div>
+        <h1 className="page-title text-gold">E-mails Autorizados</h1>
+        <p className="page-subtitle mt-8">Só quem estiver nesta lista consegue criar conta em <strong>/cadastro</strong>.</p>
+      </div>
+
+      {emailMsg.text && (
+        <div className="highlight-box mb-24" style={{ padding: "14px", fontSize: "14px", borderColor: emailMsg.type === "error" ? "var(--danger)" : "var(--success)", color: emailMsg.type === "error" ? "var(--danger)" : "var(--success)" }}>
+          {emailMsg.text}
+        </div>
+      )}
+
+      <div className="card mb-24" style={{ padding: "20px" }}>
+        <form onSubmit={handleAddEmail} style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div className="form-group" style={{ flex: 1, minWidth: "260px", marginBottom: 0 }}>
+            <label className="form-label">Adicionar novo e-mail</label>
+            <input
+              type="email"
+              className="form-input"
+              placeholder="nome.sobrenome@ufv.br"
+              value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+            />
+          </div>
+          <button type="submit" className="topbar-btn primary" disabled={isSaving}>
+            {isSaving ? "Adicionando..." : "Adicionar"}
+          </button>
+        </form>
+      </div>
+
+      <div className="table-wrap">
+        <div className="table-header">
+          <div className="table-title">Autorizados ({authorizedEmails.length})</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>E-mail</th>
+              <th style={{ textAlign: "right" }}>Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {authorizedEmails.length === 0 ? (
+              <tr><td colSpan={2} style={{ color: "var(--text-muted)" }}>Nenhum e-mail cadastrado ainda.</td></tr>
+            ) : (
+              authorizedEmails.map(item => (
+                <tr key={item.email}>
+                  <td>{item.email}</td>
+                  <td style={{ textAlign: "right" }}>
+                    <button
+                      className="topbar-btn"
+                      style={{ borderColor: "var(--danger)", color: "var(--danger)" }}
+                      onClick={() => handleRemoveEmail(item.email)}
+                    >
+                      Remover
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   const renderAdminTab = () => {
     if (adminView === "questionnaire") return renderQuestionnaireView();
+    if (adminView === "emails") return renderEmailsView();
 
     if (adminView === "goals") {
       return (
@@ -609,10 +744,14 @@ export default function AdministradorPage() {
           
           <div className="nav-section" style={{ marginTop: '24px' }}>
             <div className="nav-label">Administração</div>
-            <div className="nav-item active" onClick={() => setAdminView('list')}>
-              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> 
+            <div className={`nav-item ${adminView !== 'emails' ? 'active' : ''}`} onClick={() => setAdminView('list')}>
+              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
               Painel Admin
               <span className="nav-badge">GP</span>
+            </div>
+            <div className={`nav-item ${adminView === 'emails' ? 'active' : ''}`} onClick={handleOpenEmails}>
+              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"></path><path d="m22 6-10 7L2 6"></path></svg>
+              E-mails Autorizados
             </div>
           </div>
         </nav>
