@@ -4,7 +4,7 @@ Portal interno da **Liga Acadêmica de Mercado Financeiro (LAMF5 / UFV)**: login
 membros, questionário oficial, quiz vocacional, acompanhamento de metas (PDI) e
 painel de administração para a Gestão de Pessoas e a Presidência.
 
-- **Site no ar:** https://lamf5-iota.vercel.app
+- **Site no ar:** https://lamf5ufv.vercel.app
 - **Stack:** Next.js 16 + React 19 + Supabase (banco/login/arquivos) + deploy na Vercel.
 
 ## Documentação

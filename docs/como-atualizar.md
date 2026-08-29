@@ -52,7 +52,7 @@ No PR (no site do GitHub):
 3. Está tudo certo? Clique em **"Merge pull request"**.
 4. Clique em **"Delete branch"** (limpa a cópia que não é mais necessária).
 
-Em ~1 minuto o site de produção (https://lamf5-iota.vercel.app) atualiza sozinho.
+Em ~1 minuto o site de produção (https://lamf5ufv.vercel.app) atualiza sozinho.
 
 ---
 
