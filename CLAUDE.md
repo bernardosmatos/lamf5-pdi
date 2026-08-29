@@ -115,6 +115,20 @@ Reconstruído a partir do código — confirme no painel do Supabase antes de al
 | `member_id` | uuid → `profiles.id` | **Único** (usado em `upsert onConflict`) |
 | `respostas` | jsonb | Objeto com todas as respostas do formulário |
 
+### Tabela `emails_autorizados` — quem pode criar conta
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `email` | text (PK) | E-mail autorizado (sempre minúsculo) |
+| `adicionado_por` | uuid → `auth.users.id` | Quem adicionou |
+| `criado_em` | timestamptz | |
+
+- RLS: só `perfil` `Gestão de Pessoas` / `Presidência` lê e edita (via função `public.is_admin()`).
+- Função `public.email_autorizado(p_email text) → boolean`: usada pela tela de
+  cadastro **antes do login** (`security definer`, liberada pro papel `anon`).
+  Responde só sim/não, não expõe a lista.
+- Gerenciada pela aba **"E-mails Autorizados"** em `/administrador`.
+- Script de criação: `docs/sql/03b-emails-autorizados.sql` (rodar 1x no Supabase).
+
 ### Storage
 - Bucket **`anexos`** (público) — anexos das metas. Usado via
   `supabase.storage.from('anexos')`.
@@ -137,10 +151,8 @@ Reconstruído a partir do código — confirme no painel do Supabase antes de al
 Peça em português normal pro Claude. Exemplos:
 
 ### Adicionar ou remover um membro autorizado a se cadastrar
-Hoje a lista está **fixa no código**: `EMAILS_AUTORIZADOS` em
-`src/app/cadastro/page.js`. Edite esse array (um e-mail `@ufv.br` por linha).
-Depois: commit → push → Vercel publica.
-*(Meta da Fase 3: mover essa lista pra uma tabela do Supabase editável pelo painel admin.)*
+**Não mexe em código.** Entra em `/administrador` → aba **"E-mails Autorizados"**
+→ adiciona/remove. É a tabela `emails_autorizados` no Supabase.
 
 ### Mudar os nomes das diretorias
 Array `DIRETORIAS` em `src/app/cadastro/page.js`. Se mudar, cheque também os
@@ -179,8 +191,6 @@ Nunca commitar direto na `main` sem conferir o preview.
 
 ## Dívidas técnicas / problemas conhecidos
 
-- **Whitelist de e-mails fixa no código** (`EMAILS_AUTORIZADOS` em
-  `cadastro/page.js`) — deveria estar no banco. Alvo da Fase 3b.
 - **Estilos inline gigantes** em quase todas as páginas — dificulta manutenção;
   migrar aos poucos pro `globals.css`/Tailwind.
 - **Sem testes automatizados.**

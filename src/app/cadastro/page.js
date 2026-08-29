@@ -4,38 +4,10 @@ import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
 
-// ============================================================================
-// WHITELIST (LISTA DE E-MAILS AUTORIZADOS)
-// ============================================================================
-const EMAILS_AUTORIZADOS = [
-  "alexandre.marculino@ufv.br",
-"alisson.anastacio@ufv.br",
-"ariane.cespedes@ufv.br",
-"arthur.p.correa@ufv.br",
-"arthur.madeira@ufv.br",
-"barbara.more@ufv.br",
-"bernardo.matos@ufv.br",
-"jeong.changyoung@ufv.br",
-"danilo.s.ribeiro@ufv.br",
-"enzo.goyata@ufv.br",
-"fabricio.gibbert@ufv.br",
-"gabriel.mariosa@ufv.br",
-"gabriel.h.olimpio@ufv.br",
-"gabriel.s.prado@ufv.br",
-"gabriela.silva.oliveira@ufv.br",
-"gabriella.conceicao@ufv.br",
-"ian.sousa@ufv.br",
-"joao.molina@ufv.br",
-"kawa.santos@ufv.br",
-"marcos.a.rocha@ufv.br",
-"maria.makiyama@ufv.br",
-"mariana.s.vieira@ufv.br",
-"matheus.f.andrade@ufv.br",
-"otto.dias@ufv.br",
-"rafael.severino@ufv.br",
-"rhayssa.joaquim@ufv.br",
-"joao.p.paula@ufv.br"
-];
+// A lista de e-mails autorizados agora fica no Supabase (tabela emails_autorizados),
+// gerenciada pelo painel /administrador. A tela de cadastro consulta a função
+// public.email_autorizado(email), que responde só sim/não (não expõe a lista).
+// Script de criação: docs/sql/03b-emails-autorizados.sql
 
 const DIRETORIAS = [
   "Presidente",
@@ -80,8 +52,14 @@ export default function CadastroPage() {
     const emailTratado = email.trim().toLowerCase();
 
     try {
-      // 1. Trava da Whitelist
-      if (!EMAILS_AUTORIZADOS.includes(emailTratado)) {
+      // 1. Trava da Whitelist (consulta o banco via função pública)
+      const { data: autorizado, error: erroWhitelist } = await supabase.rpc("email_autorizado", { p_email: emailTratado });
+      if (erroWhitelist) {
+        setMessage({ type: "error", text: "Não foi possível validar seu e-mail no momento. Tente novamente em alguns instantes." });
+        setIsSaving(false);
+        return;
+      }
+      if (!autorizado) {
         setMessage({ type: "error", text: "Acesso negado: Este e-mail não está na lista de membros autorizados. Contate a Gestão de Pessoas." });
         setIsSaving(false);
         return;
